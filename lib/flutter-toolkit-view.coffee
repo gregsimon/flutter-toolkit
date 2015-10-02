@@ -1,22 +1,25 @@
-module.exports =
-class FlutterToolkitView
-  constructor: (serializedState) ->
-    # Create root element
-    @element = document.createElement('div')
-    @element.classList.add('flutter-toolkit')
+App = require './Components/App'
 
-    # Create message element
-    message = document.createElement('div')
-    message.textContent = "The FlutterToolkit package is Alive! It's ALIVE!"
-    message.classList.add('message')
-    @element.appendChild(message)
+$root = null
+$panel = null
+isInited = false
 
-  # Returns an object that can be retrieved when package is activated
-  serialize: ->
+exports.show = (_debugger) ->
+  if not isInited
+    $root = document.createElement('div')
+    App.start($root, _debugger)
 
-  # Tear down any state and detach
-  destroy: ->
-    @element.remove()
+  $panel = atom.workspace.addBottomPanel(item: $root)
+  isInited = true
 
-  getElement: ->
-    @element
+exports.hide = ->
+  return unless $panel
+  $panel.destroy()
+  atom.workspace.getActivePane().activate()
+
+exports.destroy = ->
+  exports.hide()
+  App.stop()
+  isInited = false
+  $root.remove() if $root?
+  $root = null

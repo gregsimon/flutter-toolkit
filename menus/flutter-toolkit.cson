@@ -17,8 +17,12 @@
           'command': 'flutter-toolkit:debug'
         },
         {
-          'label': 'Toggle'
-          'command': 'flutter-toolkit:toggle'
+          'label': 'Stop'
+          'command': 'flutter-toolkit:debug-stop'
+        },
+        {
+          'label': 'Toggle Breakpoint'
+          'command': 'flutter-toolkit:toggle-breakpoint'
         }
       ]
     ]
