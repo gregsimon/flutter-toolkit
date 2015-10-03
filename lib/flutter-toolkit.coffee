@@ -12,10 +12,10 @@ onBreak = null
 
 initNotifications = (_debugger) ->
   _debugger.on 'connected', ->
-    atom.notifications.addSuccess('connected, enjoy debugging : )')
+    atom.notifications.addSuccess('Debugger connected.')
 
   _debugger.on 'disconnected', ->
-    atom.notifications.addInfo('finish debugging : )')
+    atom.notifications.addInfo('Process exited.')
 
 module.exports =
   flutterToolkitView: null

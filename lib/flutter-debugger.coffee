@@ -52,7 +52,7 @@ class ProcessManager extends EventEmitter
         @process.stderr.on 'end', () ->
           logger.info 'child_process', 'end error'
 
-        @emit 'procssCreated', @process
+        @emit 'processCreated', @process
 
         @process.once 'error', (err) =>
           switch err.code
@@ -113,7 +113,7 @@ class Debugger extends EventEmitter
     @onBreak = @onBreakEvent.listen
     @onAddBreakpoint = @onAddBreakpointEvent.listen
     @onRemoveBreakpoint = @onRemoveBreakpointEvent.listen
-    @processManager.on 'procssCreated', @start
+    @processManager.on 'processCreated', @start
     @processManager.on 'processEnd', @cleanup
     @markers = []
 
@@ -282,8 +282,8 @@ class Debugger extends EventEmitter
         return
       attemptConnectCount++
       self.client.connect(
-        self.atom.config.get('node-debugger.debugPort'),
-        self.atom.config.get('node-debugger.debugHost')
+        self.atom.config.get('flutter-toolkit.debugPort'),
+        self.atom.config.get('flutter-toolkit.debugHost')
       )
 
     onConnectionError = =>
@@ -295,6 +295,7 @@ class Debugger extends EventEmitter
       , 500
 
     @client = new Client()
+    logger.info 'debugger', @client
     @client.once 'ready', @bindEvents
 
     @client.on 'unhandledResponse', (res) => @emit 'unhandledResponse', res
