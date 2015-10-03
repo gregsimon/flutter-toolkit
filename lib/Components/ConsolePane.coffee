@@ -8,7 +8,7 @@ hg = require 'mercury'
 
 exports.create = (_debugger) ->
   jsGrammar = atom.grammars.grammarForScopeName('source.js')
-
+  
   tokenizeLine = (text) ->
     {tokens} = jsGrammar.tokenizeLine(text)
     h('div.line', {}, [

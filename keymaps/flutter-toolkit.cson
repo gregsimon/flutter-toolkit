@@ -8,6 +8,6 @@
 # For more detailed documentation see
 # https://atom.io/docs/latest/behind-atom-keymaps-in-depth
 'atom-workspace':
-  'f5': 'flutter-toolkit:debug'
-  'shift-f5': 'flutter-toolkit:debug-stop'
+  'f5': 'flutter-toolkit:debugger-start-resume'
+  'shift-f5': 'flutter-toolkit:debugger-stop'
   'f9': 'flutter-toolkit:toggle-breakpoint'

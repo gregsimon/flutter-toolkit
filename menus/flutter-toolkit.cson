@@ -2,8 +2,8 @@
 'context-menu':
   'atom-text-editor': [
     {
-      'label': 'Toggle flutter-toolkit'
-      'command': 'flutter-toolkit:toggle'
+      'label': 'Toggle Flutter Breakpoint'
+      'command': 'flutter-toolkit:toggle-breakpoint'
     }
   ]
 'menu': [
@@ -13,12 +13,12 @@
       'label': 'Flutter ToolKit'
       'submenu': [
         {
-          'label': 'Debug...'
-          'command': 'flutter-toolkit:debug'
+          'label': 'Debug/Resume...'
+          'command': 'flutter-toolkit:debugger-start-resume'
         },
         {
           'label': 'Stop'
-          'command': 'flutter-toolkit:debug-stop'
+          'command': 'flutter-toolkit:debugger-stop'
         },
         {
           'label': 'Toggle Breakpoint'

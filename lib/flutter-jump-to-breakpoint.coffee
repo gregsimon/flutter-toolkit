@@ -2,7 +2,7 @@ Promise = require 'bluebird'
 fs = require 'fs'
 url = require 'url'
 Module = require 'module'
-NonEditableEditorView = require './non-editable-editor'
+NonEditableEditorView = require './flutter-non-editable-editor'
 
 
 PROTOCOL = 'atom-dart-debugger://'
@@ -59,7 +59,7 @@ module.exports = (_debugger) ->
         ])
         editor.decorateMarker(currentMarker, {
           type: 'line-number'
-          class: 'node-debugger-stop-line'
+          class: 'flutter-debugger-stop-line'
         })
 
 module.exports.cleanup = ->

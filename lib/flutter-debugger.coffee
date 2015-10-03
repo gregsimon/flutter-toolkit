@@ -345,7 +345,7 @@ class Debugger extends EventEmitter
 
   markLine: (editor, breakPoint) ->
       marker = editor.markBufferPosition([breakPoint.line-1, 0], invalidate: 'never')
-      editor.decorateMarker(marker, type: 'line-number', class: 'node-debugger-breakpoint')
+      editor.decorateMarker(marker, type: 'line-number', class: 'flutter-debugger-breakpoint')
       @markers.push marker
       return marker
 

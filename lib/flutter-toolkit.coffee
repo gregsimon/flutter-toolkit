@@ -2,7 +2,7 @@ FlutterToolkitView = require './flutter-toolkit-view'
 Event = require 'geval'
 {CompositeDisposable} = require 'atom'
 {Debugger, ProcessManager} = require './flutter-debugger'
-jumpToBreakpoint = require './jump-to-breakpoint'
+jumpToBreakpoint = require './flutter-jump-to-breakpoint'
 logger = require './logger'
 os = require 'os'
 
@@ -17,14 +17,12 @@ initNotifications = (_debugger) ->
   _debugger.on 'disconnected', ->
     atom.notifications.addInfo('finish debugging : )')
 
-module.exports = #FlutterToolkit =
+module.exports =
   flutterToolkitView: null
-  subscriptions: null
-
   config:
     dartPath:
       type: 'string'
-      default: if os.platform() is 'win32' then 'C:\Users\gregs_000\Downloads\dartsdk-windows-x64-release\dart-sdk\bin\dart.exe' else '/usr/local/bin/dart'
+      default: if os.platform() is 'win32' then 'C:\\Users\\gregs_000\\Downloads\\dartsdk-windows-x64-release\\dart-sdk\\bin\\dart.exe' else '/usr/local/bin/dart'
     debugPort:
       type: 'number'
       minium: 5857
@@ -40,48 +38,38 @@ module.exports = #FlutterToolkit =
       type: 'string'
       default: ''
 
-  activate: (state) ->
+  activate: () ->
     logger.info 'main', "activate()"
-    @subscriptions = new CompositeDisposable
+    @disposables = new CompositeDisposable()
     processManager = new ProcessManager(atom)
     _debugger = new Debugger(atom, processManager)
     initNotifications(_debugger)
 
-    #flutterToolkitView = new FlutterToolkitView(state.flutterToolkitViewState)
-    #@modalPanel = atom.workspace.addModalPanel(item: @flutterToolkitView.getElement(), visible: false)
-
     # Events subscribed to in atom's system can be easily cleaned up with a CompositeDisposable
 
     # Register command that toggles this view
-    @subscriptions.add atom.commands.add('atom-workspace', {
-      'flutter-toolkit:debug': @debug()
-      'flutter-toolkit:debug-stop': @stop()
-      'flutter-toolkit:toggle-breakpoint': @toggleBreakpoint()
+    @disposables.add atom.commands.add('atom-workspace', {
+      'flutter-toolkit:debugger-start-resume': @debuggerStartResume
+      'flutter-toolkit:debugger-stop': @debuggerStop
+      'flutter-toolkit:toggle-breakpoint': @toggleBreakpoint
     })
 
     jumpToBreakpoint(_debugger)
 
-  deactivate: ->
-    logger.info 'main', "deactivate()"
-    @subscriptions.dispose()
-    flutterToolkitView.destroy()
 
-  serialize: ->
-    flutterToolkitViewState: @flutterToolkitView.serialize()
-
-  debug: ->
-    logger.info 'main', "debug() *******************"
+  debuggerStartResume: =>
+    logger.info 'main', "debuggerStartResume() *******************"
     if _debugger.isConnected()
       _debugger.reqContinue()
     else
       processManager.start()
-      @flutterToolkitView.show(_debugger)
+      FlutterToolkitView.show(_debugger)
 
-  stop: =>
-    logger.info 'main', "debug-stop"
+  debuggerStop: =>
+    logger.info 'main', "debuggerStop()"
     processManager.cleanup()
     _debugger.cleanup()
-    @flutterToolkitView.destroy()
+    FlutterToolkitView.destroy()
     jumpToBreakpoint.cleanup()
 
   toggleBreakpoint: =>
@@ -90,3 +78,14 @@ module.exports = #FlutterToolkit =
     path = editor.getPath()
     {row} = editor.getCursorBufferPosition()
     _debugger.toggleBreakpoint(editor, path, row)
+
+
+  deactivate: ->
+    logger.info 'main', "deactivate()"
+    jumpToBreakpoint.destroy()
+    @debuggerStop()
+    @disposables.dispose()
+    FlutterToolkitView.destroy()
+
+  serialize: ->
+    flutterToolkitViewState: @flutterToolkitView.serialize()
