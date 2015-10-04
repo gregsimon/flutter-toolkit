@@ -11,3 +11,6 @@
   'f5': 'flutter-toolkit:debugger-start-resume'
   'shift-f5': 'flutter-toolkit:debugger-stop'
   'f9': 'flutter-toolkit:toggle-breakpoint'
+  'f10': 'flutter-toolkit:debugger-step'
+  'f11': 'flutter-toolkit:debugger-step-in'
+  'f12': 'flutter-toolkit:debugger-step-out'

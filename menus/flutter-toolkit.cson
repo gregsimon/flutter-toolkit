@@ -8,23 +8,38 @@
   ]
 'menu': [
   {
-    'label': 'Packages'
+    'label': 'Flutter'
     'submenu': [
-      'label': 'Flutter ToolKit'
-      'submenu': [
         {
           'label': 'Debug/Resume...'
           'command': 'flutter-toolkit:debugger-start-resume'
-        },
+        }
         {
           'label': 'Stop'
           'command': 'flutter-toolkit:debugger-stop'
-        },
+        }
+        {
+          'label': 'Step'
+          'command': 'flutter-toolkit:debugger-step'
+        }
+        {
+          'label': 'Step In'
+          'command': 'flutter-toolkit:debugger-step-in'
+        }
+        {
+          'label': 'Step Out'
+          'command': 'flutter-toolkit:debugger-step-out'
+        }
         {
           'label': 'Toggle Breakpoint'
           'command': 'flutter-toolkit:toggle-breakpoint'
         }
+        {type: 'separator'}
+        {
+          'label': 'Install FlutterShell.apk to device...'
+          'command': 'flutter-toolkit:install-apk'
+        }
       ]
-    ]
+
   }
 ]

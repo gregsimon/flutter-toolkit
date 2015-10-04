@@ -51,6 +51,9 @@ module.exports =
     @disposables.add atom.commands.add('atom-workspace', {
       'flutter-toolkit:debugger-start-resume': @debuggerStartResume
       'flutter-toolkit:debugger-stop': @debuggerStop
+      'flutter-toolkit:debugger-step': @debuggerStep
+      'flutter-toolkit:debugger-step-in': @debuggerStepIn
+      'flutter-toolkit:debugger-step-out': @debuggerStepOut
       'flutter-toolkit:toggle-breakpoint': @toggleBreakpoint
     })
 
@@ -71,6 +74,15 @@ module.exports =
     _debugger.cleanup()
     FlutterToolkitView.destroy()
     jumpToBreakpoint.cleanup()
+
+  debuggerStep: =>
+    _debugger.step('next', 1)
+
+  debuggerStepIn: =>
+    _debugger.step('in', 1)
+
+  debuggerStepOut: =>
+    _debugger.step('out', 1)
 
   toggleBreakpoint: =>
     logger.info 'main', "toggleBreakpoint"

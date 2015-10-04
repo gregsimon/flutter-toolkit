@@ -7,10 +7,10 @@ hg = require 'mercury'
 {CommandHistory} = require './consolepane-utils'
 
 exports.create = (_debugger) ->
-  jsGrammar = atom.grammars.grammarForScopeName('source.js')
-  
+  dartGrammar = atom.grammars.grammarForScopeName('source.dart')
+
   tokenizeLine = (text) ->
-    {tokens} = jsGrammar.tokenizeLine(text)
+    {tokens} = dartGrammar.tokenizeLine(text)
     h('div.line', {}, [
       h('span.test.shell-session', {}, tokens.map((token) ->
         h('span', {
@@ -76,7 +76,7 @@ exports.create = (_debugger) ->
           next()
       })
 
-    _debugger.processManager.on 'procssCreated', ->
+    _debugger.processManager.on 'processCreated', ->
       {stdout, stderr} = _debugger.processManager.process
 
       stdout.on 'data', (d) -> console.log(d.toString())
