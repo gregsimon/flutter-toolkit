@@ -25,7 +25,7 @@ module.exports =
       type: 'string'
       default: if os.platform() is 'win32'
           'C:\\Users\\gregs_000\\Downloads\\dartsdk-windows-x64-release\\dart-sdk\\bin\\dart.exe'
-        else if os.platform() is 'linux' 
+        else if os.platform() is 'linux'
           '/usr/bin/dart'
         else
           '/usr/local/bin/dart'
@@ -34,13 +34,13 @@ module.exports =
       type: 'number'
       minium: 5857
       maxium: 65535
-      default: 5858
+      default: 8182
     debugHost:
       type: 'string'
       default: '127.0.0.1'
     dartArgs:
       type: 'string'
-      default: '--observe'
+      default: '--observe=8182'
     appArgs:
       type: 'string'
       default: ''

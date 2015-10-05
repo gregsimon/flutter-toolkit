@@ -29,8 +29,18 @@ class Client
 
   connect: =>
     logger.info 'shim', 'connect'
+    @s = new WebSocket("ws://localhost:8181/ws");
+    @s.onopen = () ->
+      console.log("ws::open");
+
+    @s.onmessage = (event) ->
+      console.log("ws::message " + event.data);
+
+    @s.onclose = () ->
+      console.log("ws::close");
 
   destroy: =>
+    @s.close()
 
   reqLookup: (req) ->
     logger.info 'shim', 'reqLookup'
