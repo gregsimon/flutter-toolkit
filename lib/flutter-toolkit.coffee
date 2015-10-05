@@ -22,7 +22,7 @@ module.exports =
   config:
     dartPath:
       type: 'string'
-      default: if os.platform() is 'win32' then 'C:\\Users\\gregs_000\\Downloads\\dartsdk-windows-x64-release\\dart-sdk\\bin\\dart.exe' else '/usr/local/bin/dart'
+      default: if os.platform() is 'win32' then 'C:\\Users\\gregs_000\\Downloads\\dartsdk-windows-x64-release\\dart-sdk\\bin\\dart.exe' else '/usr/bin/dart'
     debugPort:
       type: 'number'
       minium: 5857
