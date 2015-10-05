@@ -1,0 +1,134 @@
+<html>
+	<head>
+    <style type='text/css'>
+      #cmd { font-family:Courier; font-weight:bold;}
+      pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+      .string { color: green; }
+      .number { color: darkorange; }
+      .boolean { color: blue; }
+      .null { color: magenta; }
+      .key { color: red; }
+    </style>
+		<script type='text/javascript'>
+
+
+  var s;
+  var iso_id;
+  var iso;
+  var vm;
+
+		function run() {
+			start_ws();
+		}
+
+    function start_ws() {
+      s = new WebSocket("ws://localhost:8181/ws");
+      s.onopen = function(event) {
+        console.log("opened")
+        
+        // subscribe to debug events:
+        s.send('{"jsonrpc": "2.0","method": "streamListen","params": {"streamId": "Debug"},"id": "2"}');
+
+
+        s.onmessage = function(event) {
+          //console.log('client received msg ', event.data);
+
+          var json = JSON.parse(event.data);
+          document.getElementById('msg').innerHTML = syntaxHighlight(
+            JSON.stringify(json, undefined, 2)); 
+
+          if (json.id == 'getvm') {
+            vm = json;
+            iso_id = json.result.isolates[0].id;
+          } else if (json.id == 'getiso') 
+            iso = json;
+
+        } // onmessage
+      } // onopen
+
+      s.onclose = function() {
+        console.log("socket closed");
+      }
+    }
+
+    function send_cmd() {
+      s.send(document.getElementById('cmd').value);
+    }
+
+    function send(str) {
+      s.send(str);
+    }
+
+    function syntaxHighlight(json) {
+        if (typeof json != 'string') {
+             json = JSON.stringify(json, undefined, 2);
+        }
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+            var cls = 'number';
+            if (/^"/.test(match)) {
+                if (/:$/.test(match)) {
+                    cls = 'key';
+                } else {
+                    cls = 'string';
+                }
+            } else if (/true|false/.test(match)) {
+                cls = 'boolean';
+            } else if (/null/.test(match)) {
+                cls = 'null';
+            }
+            return '<span class="' + cls + '">' + match + '</span>';
+        });
+    }
+
+    function getvm() {
+      s.send('{"jsonrpc": "2.0","method": "getVM","params": {},"id": "getvm"}');
+    }
+
+    function getiso() {
+      s.send('{"jsonrpc": "2.0","method": "getIsolate","params":{"isolateId":"'+iso_id+'"},"id": "getiso"}');
+    }
+
+    function getstack() {
+      s.send('{"jsonrpc": "2.0","method": "getStack","params":{"isolateId":"'+iso_id+'"},"id": "getstack"}');
+    }
+
+    function pause() {
+      s.send('{"jsonrpc": "2.0","method": "pause","params":{"isolateId":"'+iso_id+'"},"id": "pause"}');
+    }
+    function resume() {
+      s.send('{"jsonrpc": "2.0","method": "resume","params":{"isolateId":"'+iso_id+'"},"id": "resume"}');
+    }
+
+
+
+		</script>
+	</head>
+	<body onload='run()'>
+		<a href='#' onClick="window.open('https://github.com/dart-lang/sdk/blob/master/runtime/vm/service/service.md', '_blank')">Dart Debugger Protocol Test</a>
+
+    <br>
+    
+    <textarea name='cmd' cols=80 rows=20 id='cmd'>
+{
+  "jsonrpc": "2.0",
+  "method": "getVersion",
+  "params": {}, 
+  "id": "1"
+}</textarea>
+    <br>
+    <input type='button' value="Send" onclick='send_cmd()' />
+    or
+    <input type='button' value="GetVM" onclick='getvm()' />
+    <input type='button' value="GetIsolate" onclick='getiso()' />
+    <input type='button' value="GetStack" onclick='getstack()' />
+    <input type='button' value="Pause" onclick='pause()' />
+    <input type='button' value="Resume" onclick='resume()' />
+    <br>
+    <pre id='msg'>
+    </pre>
+
+    <p>
+
+	</body>
+</html>
