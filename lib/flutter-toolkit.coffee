@@ -93,7 +93,7 @@ module.exports =
 
   toggleBreakpoint: =>
     logger.info 'main', "toggleBreakpoint"
-    _debugger.startPaused()
+    #_debugger.startPaused()
     editor = atom.workspace.getActiveTextEditor()
     path = editor.getPath()
     {row} = editor.getCursorBufferPosition()

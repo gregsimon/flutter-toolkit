@@ -31,6 +31,7 @@ class Client extends EventEmitter
     super()
     @s = null
     @iso = null
+    @iso_details = []
     @vm = null
 
     @breakpoints_ = []
@@ -61,12 +62,18 @@ class Client extends EventEmitter
         console.log(json)
         logger.info 'shim', event.data
       else if (json.id == 'getvm')
-        console.log(json)
+        #console.log(json)
         @vm = json
         @iso = json.result.isolates
+
+        # collect detailed isolate info so we can set breakpoints/etc.
+        # TODO : support more than one isolate!
+        @s.send '{"jsonrpc": "2.0","method": "getIsolate","params":{"isolateId":"'+@iso[0].id+'"},"id": "getiso"}'
+
         @emit 'ready'
       else if (json.id == 'getiso')
-        @iso = json
+        @iso_details.push json.result
+        #console.log(json.result)
       else
         console.log("ws::message (unclassified) " + event.data)
 
@@ -100,6 +107,34 @@ class Client extends EventEmitter
 
   setBreakpoint: (req) ->
     logger.info 'shim', 'setBreakpoint ' + req
+    console.log(req.target + ':' + req.line)
+    # req.type <-- "script"
+    # req.target <-- <file path>
+    # req.line <-- <number>
+    # req.condition <-- 'undefined'
+
+    # @iso_details.libraries[?].url <-- contains the fielname ("file:///usr ... ")
+    # @iso_details.libraries[?].id <-- scriptId
+
+    scriptId = undefined
+
+    # TODO : support more than one isolate
+    # Locate the isolate which we want to set the breakpoint in.
+    for lib in @iso_details[0].libraries
+      if lib.uri.search req.target >= 0
+        scriptId = lib.id
+        break
+
+    if scriptId is undefined
+      logger.error 'shim', 'unable to locate script id for ' + req.target
+
+    str = '{"jsonrpc": "2.0","method": "addBreakpointWithScriptUri","params":{"isolateId":"'+@iso[0].id+'",\
+      "scriptUri": "file://'+req.target+'", \
+      "line": "'+req.line.toString()+'" \
+      },"id": "addbreakpoint"}'
+    console.log str
+    @s.send str
+
 
   step: (type, count) ->
     logger.info 'shim', 'step ' + type
