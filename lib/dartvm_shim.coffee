@@ -1,5 +1,6 @@
 # This is an implementation of _debugger that talks to the DartVM
-# over websockets.
+# over websockets. _debugger is part of the internal atom repl.js
+# package.
 
 # .client.destroy
 # .client.reqLookup(ref)
@@ -26,15 +27,31 @@ logger = require './logger'
 
 class Client
   constructor: ()->
+    @s = null
+    @iso = null
+    @vm = null
 
   connect: =>
     logger.info 'shim', 'connect'
     @s = new WebSocket("ws://localhost:8181/ws");
-    @s.onopen = () ->
+    @s.onopen = (event) ->
+      @s = event.target
       console.log("ws::open");
+
+      # subscribe to Debug events
+      @s.send '{"jsonrpc": "2.0","method": "streamListen","params": {"streamId": "Debug"},"id": "2"}'
+
+      # Collect some info about the VM here.
+      @s.send '{"jsonrpc": "2.0","method": "getVM","params": {},"id": "getvm"}'
 
     @s.onmessage = (event) ->
       console.log("ws::message " + event.data);
+      json = JSON.parse(event.data)
+      if (json.id == 'getvm')
+        @vm = json
+      else if (json.id == 'getiso')
+        @iso = json
+
 
     @s.onclose = () ->
       console.log("ws::close");
