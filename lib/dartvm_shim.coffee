@@ -33,14 +33,14 @@ class Client extends EventEmitter
     @iso = null
     @vm = null
 
-    #@onReadyEvent = Event()
+    @breakpoints_ = []
 
   connect: (port, host)->
     logger.info 'shim', 'connecting to VM...'
     @s = new WebSocket('ws://localhost:8181/ws')
 
     @s.onopen = (event) =>
-      console.log("ws::open");
+      logger.info 'shim', 'ws::onopen'
 
       # subscribe to events from the VM
       @s.send '{"jsonrpc": "2.0","method": "streamListen","params": {"streamId": "Debug"},"id": "streamlisten"}'
@@ -51,13 +51,16 @@ class Client extends EventEmitter
       # emit 'ready' when the VM info has come back.
 
     @s.onerror = (error) =>
+      logger.info 'shim', 'ws::error'
       @emit 'error', error
 
     @s.onmessage = (event) =>
+      logger.info 'shim', 'ws::onmessage'
       json = JSON.parse(event.data)
       if (json.id == 'streamlisten')
         logger.info 'shim', event.data
       else if (json.id == 'getvm')
+        console.log(json)
         @vm = json
         @emit 'ready'
       else if (json.id == 'getiso')
@@ -67,7 +70,7 @@ class Client extends EventEmitter
 
 
     @s.onclose = () =>
-      console.log("ws::close");
+      logger.info 'shim', 'ws::onclose'
       @emit 'close'
 
   destroy: ->
@@ -87,15 +90,17 @@ class Client extends EventEmitter
 
   breakpoints: ->
     logger.info 'shim', 'breakpoints'
+    return ""
 
   setBreakpoint: (req) ->
-    logger.info 'shim', 'setBreakpoint'
+    logger.info 'shim', 'setBreakpoint ' + req
 
   step: (type, count) ->
     logger.info 'shim', 'step ' + type
 
   continue: ->
     logger.info 'shim', 'continue'
+    @s.send 'reqContinue'
 
   getScriptById: (id) ->
     logger.info 'shim', 'getScriptById'

@@ -6,7 +6,7 @@
   "keywords": [
   ],
   "activationCommands": {
-    "atom-workspace": "flutter-toolkit:toggle-breakpoint",
+    "atom-text-editor": "flutter-toolkit:toggle-breakpoint",
     "atom-workspace": "flutter-toolkit:debugger-start-resume"
   },
   "repository": "https://github.com/gregsimon/flutter-toolkit",

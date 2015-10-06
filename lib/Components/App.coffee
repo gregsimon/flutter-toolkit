@@ -114,7 +114,7 @@ exports.start = (root, _debugger) ->
     hg.state(define)
 
   App.render = (state) ->
-    logger.info 'app state', state
+    #logger.info 'app state', state
 
     h('div', {
       style: {

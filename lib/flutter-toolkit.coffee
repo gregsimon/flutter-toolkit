@@ -40,7 +40,7 @@ module.exports =
       default: 'localhost'
     dartArgs:
       type: 'string'
-      default: '--observe=8182'
+      default: '--observe=8181'
     appArgs:
       type: 'string'
       default: ''
@@ -93,6 +93,7 @@ module.exports =
 
   toggleBreakpoint: =>
     logger.info 'main', "toggleBreakpoint"
+    _debugger.startPaused()
     editor = atom.workspace.getActiveTextEditor()
     path = editor.getPath()
     {row} = editor.getCursorBufferPosition()

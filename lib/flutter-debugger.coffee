@@ -15,7 +15,11 @@ class ProcessManager extends EventEmitter
     super()
     @process = null
 
-  start: (file) ->
+  startPaused: ()->
+    logger.info 'shim', 'starting target paused'
+    @start true
+
+  start: (start_paused = false)->
     @cleanup()
       .then =>
         targetPath = @atom.config.get('flutter-toolkit.dartPath')
@@ -29,9 +33,12 @@ class ProcessManager extends EventEmitter
 
         args = [
           nodeArgs or ''
-          file or appPath
+          appPath
           appArgs or ''
         ]
+
+        if start_paused
+          args.push ' --pause-isolates-on-start'
 
         logger.error 'spawn', dropEmpty(args)
 
@@ -158,12 +165,19 @@ class Debugger extends EventEmitter
         resolve(res[0])
 
   tryGetBreakpoint: (script, line) =>
+    # TODO : This can be called before the client is instantiated.
+
     findMatch = R.find (breakpoint) =>
       if breakpoint.scriptId is script or breakpoint.scriptReq is script or (breakpoint.script and breakpoint.script.indexOf(script) isnt -1)
         return breakpoint.line is (line+1);
     return findMatch(@client.breakpoints)
 
   toggleBreakpoint: (editor, script, line) ->
+    # We need to start the process in a puased state if
+    # it hasn't been started yet.
+    if @client is null
+      @start(true)
+
     new Promise (resolve, reject) =>
 
       match = @tryGetBreakpoint(script, line)
@@ -271,7 +285,7 @@ class Debugger extends EventEmitter
         return reject(err) if err
         resolve(res)
 
-  # The target process has started
+  # The target process has started but may be in a paused state
   start: =>
     logger.info 'debugger', 'start connect to process'
     self = this
