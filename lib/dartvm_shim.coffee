@@ -38,7 +38,7 @@ class Client extends EventEmitter
 
   connect: (port, host)->
     logger.info 'shim', 'connecting to VM...'
-    @s = new WebSocket('ws://localhost:8181/ws')
+    @s = new WebSocket("ws://#{host}:#{port}/ws")
 
     @s.onopen = (event) =>
       logger.info 'shim', 'ws::onopen'
