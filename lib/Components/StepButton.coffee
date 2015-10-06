@@ -6,6 +6,7 @@ BTN_ICON_MAP = {
   'next': 'icon-chevron-right btn btn-primary'
   'out': 'icon-chevron-up btn btn-primary'
   'in': 'icon-chevron-down btn btn-primary'
+  'pause': 'icon-playback-pause btn btn-primary'
 }
 
 exports.StepButton = (_debugger) ->

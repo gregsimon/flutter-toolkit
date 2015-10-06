@@ -50,6 +50,7 @@ RightSidePane = (BreakPointPane, CallStackPane, StepButton, state) ->
       h('div.debugger-panel-heading', {
       }, [
         h('div.btn-group', {}, [
+          StepButton.render(state.steps.stepPause)
           StepButton.render(state.steps.stepContinue)
           StepButton.render(state.steps.stepNext)
           StepButton.render(state.steps.stepIn)
@@ -85,6 +86,7 @@ exports.start = (root, _debugger) ->
     state.sideWidth.set(data.sideWidth)
 
   App = ->
+    stepPause = StepButton('pause', 'pause')
     stepContinue = StepButton('continue', 'continue')
     stepIn = StepButton('step in', 'in')
     stepOut = StepButton('step out', 'out')
@@ -102,6 +104,7 @@ exports.start = (root, _debugger) ->
         stepOut: stepOut
         stepNext: stepNext
         stepContinue: stepContinue
+        stepPause: stepPause
       }
       breakpoints: BreakPointPane()
       callstack: CallStackPane()
