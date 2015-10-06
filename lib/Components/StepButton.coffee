@@ -41,7 +41,7 @@ exports.StepButton = (_debugger) ->
     h 'div', {
       'ev-click': hg.send channels.next
       'className': BTN_ICON_MAP[state.type()]
-      'distabled': !state.waiting
+      'disabled': !state.waiting
     }, [
     ]
 
