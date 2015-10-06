@@ -12,10 +12,10 @@ onBreak = null
 
 initNotifications = (_debugger) ->
   _debugger.on 'connected', ->
-    atom.notifications.addSuccess('Debugger connected.')
+    atom.notifications.addSuccess('Debugger connected')
 
   _debugger.on 'disconnected', ->
-    atom.notifications.addInfo('Process exited.')
+    atom.notifications.addInfo('Debugger disconnected')
 
 
 module.exports =

@@ -22,87 +22,92 @@
 # .client.on ('close')
 # .client.once('ready') -> callback
 
+{EventEmitter} = require 'events'
 logger = require './logger'
 
 
-class Client
+class Client extends EventEmitter
   constructor: ()->
+    super()
     @s = null
     @iso = null
     @vm = null
 
-  connect: =>
-    logger.info 'shim', 'connect'
-    @s = new WebSocket("ws://localhost:8181/ws");
-    @s.onopen = (event) ->
-      @s = event.target
+    #@onReadyEvent = Event()
+
+  connect: ->
+    logger.info 'shim', 'connecting to VM...'
+    @s = new WebSocket("ws://localhost:8181/ws")
+
+    @s.onopen = (event) =>
       console.log("ws::open");
 
-      # subscribe to Debug events
-      @s.send '{"jsonrpc": "2.0","method": "streamListen","params": {"streamId": "Debug"},"id": "2"}'
+      # subscribe to events from the VM
+      @s.send '{"jsonrpc": "2.0","method": "streamListen","params": {"streamId": "Debug"},"id": "streamlisten"}'
 
       # Collect some info about the VM here.
       @s.send '{"jsonrpc": "2.0","method": "getVM","params": {},"id": "getvm"}'
 
-    @s.onmessage = (event) ->
-      console.log("ws::message " + event.data);
+      @emit 'ready'
+
+    @s.onmessage = (event) =>
+      console.log("ws::message " + event.data)
       json = JSON.parse(event.data)
-      if (json.id == 'getvm')
+      if (json.id == 'streamlisten')
+        logger.info 'shim', event.data
+      else if (json.id == 'getvm')
         @vm = json
       else if (json.id == 'getiso')
         @iso = json
 
 
-    @s.onclose = () ->
+    @s.onclose = () =>
       console.log("ws::close");
 
-  destroy: =>
+  destroy: ->
     @s.close()
+
+  req: (cmd) ->
+    logger.info 'shim', 'req -> ' + cmd
 
   reqLookup: (req) ->
     logger.info 'shim', 'reqLookup'
 
-  listbreakpoints: =>
+  listbreakpoints: ->
     logger.info 'shim', 'listbreakpoints'
 
-  breakpoints: =>
+  breakpoints: ->
     logger.info 'shim', 'breakpoints'
 
   setBreakpoint: (req) ->
     logger.info 'shim', 'setBreakpoint'
 
   step: (type, count) ->
-    logger.info 'shim', 'step'
+    logger.info 'shim', 'step ' + type
 
-  continue: =>
+  continue: ->
     logger.info 'shim', 'continue'
 
   getScriptById: (id) ->
     logger.info 'shim', 'getScriptById'
 
-  currentScript: =>
+  currentScript: ->
     logger.info 'shim', 'currentScript'
 
-  currentSourceLine: =>
+  currentSourceLine: ->
     logger.info 'shim', 'currentSourceLine'
     return 1;
 
-  scripts: =>
+  scripts: ->
     logger.info 'shim', 'scripts'
     return []
 
-  fullTrace: =>
+  fullTrace: ->
     logger.info 'shim', 'fullTrace'
     return "";
 
   evaluate: (expr) ->
     logger.info 'shim', 'evaluate'
-
-  on: (eventName) ->
-    logger.info 'shim', 'on(...)'
-
-  once: (eventName) ->
-    logger.info 'shim', 'once(...)'
 
 
 exports.Client = Client

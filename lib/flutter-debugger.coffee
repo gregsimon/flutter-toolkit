@@ -295,7 +295,6 @@ class Debugger extends EventEmitter
       , 500
 
     @client = new Client()
-    logger.info 'debugger', @client
     @client.once 'ready', @bindEvents
 
     @client.on 'unhandledResponse', (res) => @emit 'unhandledResponse', res
