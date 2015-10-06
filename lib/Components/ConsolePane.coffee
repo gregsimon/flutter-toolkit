@@ -79,8 +79,8 @@ exports.create = (_debugger) ->
     _debugger.processManager.on 'processCreated', ->
       {stdout, stderr} = _debugger.processManager.process
 
-      stdout.on 'data', (d) -> console.log(d.toString())
-      stderr.on 'data', (d) -> console.log(d.toString())
+      #stdout.on 'data', (d) -> console.log(d.toString())
+      #stderr.on 'data', (d) -> console.log(d.toString())
 
       stdout
         .pipe(split())

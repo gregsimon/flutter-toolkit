@@ -35,9 +35,9 @@ class Client extends EventEmitter
 
     #@onReadyEvent = Event()
 
-  connect: ->
+  connect: (port, host)->
     logger.info 'shim', 'connecting to VM...'
-    @s = new WebSocket("ws://localhost:8181/ws")
+    @s = new WebSocket('ws://localhost:8181/ws')
 
     @s.onopen = (event) =>
       console.log("ws::open");
@@ -48,24 +48,33 @@ class Client extends EventEmitter
       # Collect some info about the VM here.
       @s.send '{"jsonrpc": "2.0","method": "getVM","params": {},"id": "getvm"}'
 
-      @emit 'ready'
+      # emit 'ready' when the VM info has come back.
+
+    @s.onerror = (error) =>
+      @emit 'error', error
 
     @s.onmessage = (event) =>
-      console.log("ws::message " + event.data)
       json = JSON.parse(event.data)
       if (json.id == 'streamlisten')
         logger.info 'shim', event.data
       else if (json.id == 'getvm')
         @vm = json
+        @emit 'ready'
       else if (json.id == 'getiso')
         @iso = json
+      else
+        console.log("ws::message (unclassified) " + event.data)
 
 
     @s.onclose = () =>
       console.log("ws::close");
+      @emit 'close'
 
   destroy: ->
     @s.close()
+
+  getVM: -> return @vm
+  getIsolates: -> return [@iso] # TODO support more than one isolate
 
   req: (cmd) ->
     logger.info 'shim', 'req -> ' + cmd

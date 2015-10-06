@@ -37,7 +37,7 @@ module.exports =
       default: 8182
     debugHost:
       type: 'string'
-      default: '127.0.0.1'
+      default: 'localhost'
     dartArgs:
       type: 'string'
       default: '--observe=8182'

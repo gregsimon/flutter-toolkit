@@ -18,7 +18,7 @@ class ProcessManager extends EventEmitter
   start: (file) ->
     @cleanup()
       .then =>
-        nodePath = @atom.config.get('flutter-toolkit.dartPath')
+        targetPath = @atom.config.get('flutter-toolkit.dartPath')
         nodeArgs = @atom.config.get('flutter-toolkit.dartArgs')
         appArgs = @atom.config.get('flutter-toolkit.appArgs')
 
@@ -35,7 +35,7 @@ class ProcessManager extends EventEmitter
 
         logger.error 'spawn', dropEmpty(args)
 
-        @process = childprocess.spawn nodePath, dropEmpty(args), {
+        @process = childprocess.spawn targetPath, dropEmpty(args), {
           detached: true
           cwd: path.dirname(args[1])
         }
@@ -63,7 +63,7 @@ class ProcessManager extends EventEmitter
                 Exit code was ENOENT which indicates that the node
                 executable could not be found.
                 Try specifying an explicit path in your atom config file
-                using the node-debugger.nodePath configuration setting."
+                using the node-debugger.targetPath configuration setting."
               )
             else
               logger.error 'child_process', "Exit code #{err.code}. #{err.message}"
@@ -271,14 +271,15 @@ class Debugger extends EventEmitter
         return reject(err) if err
         resolve(res)
 
+  # The target process has started
   start: =>
     logger.info 'debugger', 'start connect to process'
     self = this
     attemptConnectCount = 0
     attemptConnect = ->
-      logger.info 'debugger', 'attempt to connect to child process'
+      logger.info 'debugger', 'attempting to connect to child process'
       if not self.client?
-        logger.info 'debugger', 'client has been cleanup'
+        logger.info 'debugger', 'client has been cleaned up'
         return
       attemptConnectCount++
       self.client.connect(
