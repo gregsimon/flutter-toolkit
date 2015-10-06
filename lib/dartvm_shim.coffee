@@ -58,10 +58,12 @@ class Client extends EventEmitter
       logger.info 'shim', 'ws::onmessage'
       json = JSON.parse(event.data)
       if (json.id == 'streamlisten')
+        console.log(json)
         logger.info 'shim', event.data
       else if (json.id == 'getvm')
         console.log(json)
         @vm = json
+        @iso = json.result.isolates
         @emit 'ready'
       else if (json.id == 'getiso')
         @iso = json
@@ -77,10 +79,14 @@ class Client extends EventEmitter
     @s.close()
 
   getVM: -> return @vm
-  getIsolates: -> return [@iso] # TODO support more than one isolate
+  getIsolates: -> return @iso
 
-  req: (cmd) ->
-    logger.info 'shim', 'req -> ' + cmd
+  req: (obj) ->
+    logger.info 'shim', 'req -> ' + obj.command
+    switch obj.command
+      when 'continue'
+        # TODO : Support more than one isolate
+        @s.send '{"jsonrpc": "2.0","method": "resume","params":{"isolateId":"'+@iso[0].id+'"},"id": "resume"}'
 
   reqLookup: (req) ->
     logger.info 'shim', 'reqLookup'
@@ -97,10 +103,15 @@ class Client extends EventEmitter
 
   step: (type, count) ->
     logger.info 'shim', 'step ' + type
+    switch type
+      when 'pause'
+        # TODO : support more than one isolate
+        @s.send '{"jsonrpc": "2.0","method": "pause","params":{"isolateId":"'+@iso[0].id+'"},"id": "pause"}'
 
   continue: ->
     logger.info 'shim', 'continue'
-    @s.send 'reqContinue'
+    # TODO : support more than one isolate
+    @s.send '{"jsonrpc": "2.0","method": "resume","params":{"isolateId":"'+@iso[0].id+'"},"id": "resume"}'
 
   getScriptById: (id) ->
     logger.info 'shim', 'getScriptById'
