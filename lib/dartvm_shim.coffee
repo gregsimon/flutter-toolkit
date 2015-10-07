@@ -116,22 +116,21 @@ class Client extends EventEmitter
     # @iso_details.libraries[?].url <-- contains the fielname ("file:///usr ... ")
     # @iso_details.libraries[?].id <-- scriptId
 
-    scriptId = undefined
+    scriptUri = undefined
 
     # TODO : support more than one isolate
     # Locate the isolate which we want to set the breakpoint in.
-    for lib in @iso_details[0].libraries
-      if lib.uri.search req.target >= 0
-        scriptId = lib.id
-        break
+    #scriptId = lib.uri for lib in @iso_details[0].libraries when lib.uri.search req.target >= 0
 
-    if scriptId is undefined
+    scriptUri = 'file://' + req.target.replace(/\\/g, "/")
+
+    if scriptUri is undefined
       logger.error 'shim', 'unable to locate script id for ' + req.target
 
-    str = '{"jsonrpc": "2.0","method": "addBreakpointWithScriptUri","params":{"isolateId":"'+@iso[0].id+'",\
-      "scriptUri": "file://'+req.target+'", \
-      "line": "'+req.line.toString()+'" \
-      },"id": "addbreakpoint"}'
+    str = '{"jsonrpc":"2.0","method":"addBreakpointWithScriptUri","params":{"isolateId":"'+@iso[0].id+'",\
+      "scriptUri":"'+scriptUri+'", \
+      "line":"'+req.line.toString()+'" \
+      },"id":"addbreakpoint"}'
     console.log str
     @s.send str
 
