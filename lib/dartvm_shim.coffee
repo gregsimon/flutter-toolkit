@@ -44,7 +44,8 @@ class Client extends EventEmitter
       logger.info 'shim', 'ws::onopen'
 
       # subscribe to events from the VM
-      @s.send '{"jsonrpc": "2.0","method": "streamListen","params": {"streamId": "Debug"},"id": "streamlisten"}'
+      @s.send '{"jsonrpc": "2.0","method": "streamListen","params": {"streamId": "Debug"},"id": "stream_debug"}'
+      @s.send '{"jsonrpc": "2.0","method": "streamListen","params": {"streamId": "Isolate"},"id": "stream_iso"}'
 
       # Collect some info about the VM here.
       @s.send '{"jsonrpc": "2.0","method": "getVM","params": {},"id": "getvm"}'
@@ -58,7 +59,10 @@ class Client extends EventEmitter
     @s.onmessage = (event) =>
       logger.info 'shim', 'ws::onmessage'
       json = JSON.parse(event.data)
-      if (json.id == 'streamlisten')
+      if (json.id == 'stream_debug')
+        console.log(json)
+        logger.info 'shim', event.data
+      if (json.id == 'stream_iso')
         console.log(json)
         logger.info 'shim', event.data
       else if (json.id == 'getvm')
@@ -72,8 +76,15 @@ class Client extends EventEmitter
 
         @emit 'ready'
       else if (json.id == 'getiso')
-        @iso_details.push json.result
+        isolate = json.result;
+        # also collect the 'scripts' for this isolate
+        @s.send '{"jsonrpc": "2.0","method": "getObject","params":{"isolateId":"'+isolate.id+'",\
+            "objectId":"'+isolate.libraries[14]+'"},"id": "getlib"}'
+        @iso_details.push isolate
         #console.log(json.result)
+      else if (json.id == 'getlib')
+        console.log("collected library");
+        console.log json.result
       else
         console.log("ws::message (unclassified) " + event.data)
 
@@ -107,7 +118,7 @@ class Client extends EventEmitter
 
   setBreakpoint: (req) ->
     logger.info 'shim', 'setBreakpoint ' + req
-    console.log(req.target + ':' + req.line)
+    console.log('from editor: ' + req.target + ':' + req.line)
     # req.type <-- "script"
     # req.target <-- <file path>
     # req.line <-- <number>
@@ -116,20 +127,21 @@ class Client extends EventEmitter
     # @iso_details.libraries[?].url <-- contains the fielname ("file:///usr ... ")
     # @iso_details.libraries[?].id <-- scriptId
 
-    scriptUri = undefined
+    scriptId = undefined
+    console.log @iso_details
 
     # TODO : support more than one isolate
     # Locate the isolate which we want to set the breakpoint in.
-    #scriptId = lib.uri for lib in @iso_details[0].libraries when lib.uri.search req.target >= 0
+    scriptId = lib.id for lib in @iso_details[0].libraries when lib.uri.search req.target >= 0
+    console.log('found '+scriptId);
 
-    scriptUri = 'file://' + req.target.replace(/\\/g, "/")
-
-    if scriptUri is undefined
+    if scriptId is undefined
       logger.error 'shim', 'unable to locate script id for ' + req.target
 
-    str = '{"jsonrpc":"2.0","method":"addBreakpointWithScriptUri","params":{"isolateId":"'+@iso[0].id+'",\
-      "scriptUri":"'+scriptUri+'", \
-      "line":"'+req.line.toString()+'" \
+    str = '{"jsonrpc":"2.0","method":"addBreakpoint","params":{\
+      "isolateId":"'+@iso[0].id+'",\
+      "scriptId":"'+scriptId+'", \
+      "line":'+req.line.toString()+' \
       },"id":"addbreakpoint"}'
     console.log str
     @s.send str
@@ -141,6 +153,9 @@ class Client extends EventEmitter
       when 'pause'
         # TODO : support more than one isolate
         @s.send '{"jsonrpc": "2.0","method": "pause","params":{"isolateId":"'+@iso[0].id+'"},"id": "pause"}'
+      when 'next'
+        # TODO : support more than one isolate
+        @s.send '{"jsonrpc": "2.0","method": "resume","params":{"isolateId":"'+@iso[0].id+'","step":"Over"},"id": "pause"}'
 
   continue: ->
     logger.info 'shim', 'continue'
