@@ -7,7 +7,7 @@ hg = require 'mercury'
 {CommandHistory} = require './consolepane-utils'
 
 exports.create = (_debugger) ->
-  dartGrammar = atom.grammars.grammarForScopeName('source.dart')
+  dartGrammar = atom.grammars.getGrammars()[0] # the null grammar
 
   tokenizeLine = (text) ->
     {tokens} = dartGrammar.tokenizeLine(text)

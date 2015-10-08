@@ -29,10 +29,11 @@ logger = require './logger'
 class Client extends EventEmitter
   constructor: ()->
     super()
-    @s = null
-    @iso = null
-    @iso_details = []
-    @vm = null
+    @s = null             # websocket
+
+    @vm = null            # VM json object
+    @isolates = { }       # details of active isolates
+    @libraries = { }      # details of all known libraries
 
     @breakpoints_ = []
 
@@ -66,25 +67,30 @@ class Client extends EventEmitter
         console.log(json)
         logger.info 'shim', event.data
       else if (json.id == 'getvm')
-        #console.log(json)
-        @vm = json
-        @iso = json.result.isolates
+        @vm = json.result
 
         # collect detailed isolate info so we can set breakpoints/etc.
-        # TODO : support more than one isolate!
-        @s.send '{"jsonrpc": "2.0","method": "getIsolate","params":{"isolateId":"'+@iso[0].id+'"},"id": "getiso"}'
+        @s.send('{"jsonrpc": "2.0","method": "getIsolate","params":{"isolateId":"'+iso.id+'"},"id": "getiso"}') for iso in json.result.isolates
 
         @emit 'ready'
       else if (json.id == 'getiso')
         isolate = json.result;
+
+        @isolates[isolate.id] = isolate
+        console.log 'the ISO object ' + isolate.id
+        #console.log(@isolates)
+
         # also collect the 'scripts' for this isolate
-        @s.send '{"jsonrpc": "2.0","method": "getObject","params":{"isolateId":"'+isolate.id+'",\
-            "objectId":"'+isolate.libraries[14]+'"},"id": "getlib"}'
-        @iso_details.push isolate
-        #console.log(json.result)
+        @s.send('{"jsonrpc": "2.0","method": "getObject","params":{"isolateId":"'+isolate.id+'",\
+            "objectId":"'+lib.id+'"},"id": "getlib"}') for lib in isolate.libraries
+
       else if (json.id == 'getlib')
-        console.log("collected library");
-        console.log json.result
+        # callback for asking for library details. We'll need this to
+        # set breakpoints on the script.
+        lib = json.result;
+        @libraries[lib.id] = lib
+
+        #console.log @libraries
       else
         console.log("ws::message (unclassified) " + event.data)
 
@@ -97,7 +103,7 @@ class Client extends EventEmitter
     @s.close()
 
   getVM: -> return @vm
-  getIsolates: -> return @iso
+  getIsolates: -> return @isolates
 
   req: (obj) ->
     logger.info 'shim', 'req -> ' + obj.command
@@ -117,29 +123,36 @@ class Client extends EventEmitter
     return ""
 
   setBreakpoint: (req) ->
-    logger.info 'shim', 'setBreakpoint ' + req
-    console.log('from editor: ' + req.target + ':' + req.line)
+    logger.info 'shim', 'setBreakpoint'
+    src_file = req.target.replace(/\\/g, "/")
+
+    console.log('setBreakpoint .. from editor: ' + src_file + ':' + req.line)
     # req.type <-- "script"
     # req.target <-- <file path>
     # req.line <-- <number>
     # req.condition <-- 'undefined'
 
-    # @iso_details.libraries[?].url <-- contains the fielname ("file:///usr ... ")
-    # @iso_details.libraries[?].id <-- scriptId
-
     scriptId = undefined
-    console.log @iso_details
+    #console.log @isolates
+    console.log @libraries
 
-    # TODO : support more than one isolate
-    # Locate the isolate which we want to set the breakpoint in.
-    scriptId = lib.id for lib in @iso_details[0].libraries when lib.uri.search req.target >= 0
-    console.log('found '+scriptId);
+    # find the isolate which contains this script.
+    isloate_with_script = iso for id, iso of @isolates when iso.id.search src_file >= 0
+    console.log 'isloate_with_script -> ' + isloate_with_script.id
 
-    if scriptId is undefined
-      logger.error 'shim', 'unable to locate script id for ' + req.target
+    # find the library this script is in. We'll search the libraries
+    # we are aware of for the .uri field. From there we'll get the
+    # scriptid.
+    library_with_script = lib for id, lib of @libraries when lib.uri.search src_file >= 0
+    if library_with_script is undefined
+      logger.error 'shim', 'unable to locate script id for ' + src_file
+
+    scriptId = library_with_script.scripts[0].id;
+
+    # TODO : we aren't identifying the isolate here.
 
     str = '{"jsonrpc":"2.0","method":"addBreakpoint","params":{\
-      "isolateId":"'+@iso[0].id+'",\
+      "isolateId":"'+isloate_with_script.id+'",\
       "scriptId":"'+scriptId+'", \
       "line":'+req.line.toString()+' \
       },"id":"addbreakpoint"}'
