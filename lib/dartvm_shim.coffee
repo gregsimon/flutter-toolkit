@@ -1,6 +1,7 @@
 # This is an implementation of _debugger that talks to the DartVM
 # over websockets. _debugger is part of the internal atom repl.js
-# package.
+# package. The rest of the debugger code (e.g., flutter-debugger.coffee)
+# is looking for the following methods:
 
 # .client.destroy
 # .client.reqLookup(ref)
@@ -35,7 +36,7 @@ class Client extends EventEmitter
     @isolates = { }       # details of active isolates
     @libraries = { }      # details of all known libraries
 
-    @breakpoints_ = []
+    @breakpoints = []
 
   connect: (port, host)->
     logger.info 'shim', 'connecting to VM...'
@@ -60,39 +61,45 @@ class Client extends EventEmitter
     @s.onmessage = (event) =>
       logger.info 'shim', 'ws::onmessage'
       json = JSON.parse(event.data)
-      if (json.id == 'stream_debug')
-        console.log(json)
-        logger.info 'shim', event.data
-      if (json.id == 'stream_iso')
-        console.log(json)
-        logger.info 'shim', event.data
-      else if (json.id == 'getvm')
-        @vm = json.result
 
-        # collect detailed isolate info so we can set breakpoints/etc.
-        @s.send('{"jsonrpc": "2.0","method": "getIsolate","params":{"isolateId":"'+iso.id+'"},"id": "getiso"}') for iso in json.result.isolates
-
-        @emit 'ready'
-      else if (json.id == 'getiso')
-        isolate = json.result;
-
-        @isolates[isolate.id] = isolate
-        console.log 'the ISO object ' + isolate.id
-        #console.log(@isolates)
-
-        # also collect the 'scripts' for this isolate
-        @s.send('{"jsonrpc": "2.0","method": "getObject","params":{"isolateId":"'+isolate.id+'",\
-            "objectId":"'+lib.id+'"},"id": "getlib"}') for lib in isolate.libraries
-
-      else if (json.id == 'getlib')
-        # callback for asking for library details. We'll need this to
-        # set breakpoints on the script.
-        lib = json.result;
-        @libraries[lib.id] = lib
-
-        #console.log @libraries
-      else
-        console.log("ws::message (unclassified) " + event.data)
+      switch json.id
+        when 'stream_debug'
+          console.log(json)
+          logger.info 'shim', event.data
+        when 'stream_iso'
+          console.log(json)
+          logger.info 'shim', event.data
+        when 'getvm'
+          @vm = json.result
+          # collect detailed isolate info so we can set breakpoints/etc.
+          @s.send('{"jsonrpc": "2.0","method": "getIsolate","params":{"isolateId":"'+iso.id+'"},"id": "getiso"}') for iso in json.result.isolates
+          @emit 'ready'
+        when 'getiso'
+          isolate = json.result;
+          @isolates[isolate.id] = isolate
+          console.log 'the ISO object ' + isolate.id
+          #console.log(@isolates)
+          # also collect the 'scripts' for this isolate
+          @s.send('{"jsonrpc": "2.0","method": "getObject","params":{"isolateId":"'+isolate.id+'",\
+              "objectId":"'+lib.id+'"},"id": "getlib"}') for lib in isolate.libraries
+        when 'getlib'
+          # callback for asking for library details. We'll need this to
+          # set breakpoints on the script.
+          lib = json.result;
+          @libraries[lib.id] = lib
+        when 'addbreakpoint'
+          # a breakpoint was added by US. We'll wait for the streamNotify callback
+        else
+          if json.method != undefined
+            switch json.method
+              when 'streamNotify'
+                @handleStreamNotify json
+              else
+                # uncaught method
+                console.log('unsupported method from streamevent: ' + json.method)
+          else
+            # uncaught id
+            console.log("ws::message (unclassified) " + event.data)
 
 
     @s.onclose = () =>
@@ -101,6 +108,19 @@ class Client extends EventEmitter
 
   destroy: ->
     @s.close()
+
+  handleStreamNotify: (json)->
+    console.log 'handleStreamNotify:'
+    console.log json
+    switch json.params.event.kind
+      when 'BreakpointAdded'
+        console.log '----> A breakpoint was added'
+        # TODO
+      when 'PauseBreakpoint'
+        console.log '----> execution has stopped because a breakpoint was hit'
+        # TODO
+      else
+        console.log 'UNSUPPORTED stream type'
 
   getVM: -> return @vm
   getIsolates: -> return @isolates
@@ -156,7 +176,7 @@ class Client extends EventEmitter
       "scriptId":"'+scriptId+'", \
       "line":'+req.line.toString()+' \
       },"id":"addbreakpoint"}'
-    console.log str
+    #console.log str
     @s.send str
 
 
