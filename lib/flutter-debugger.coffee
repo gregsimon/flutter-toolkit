@@ -109,8 +109,10 @@ class ProcessManager extends EventEmitter
       @process.once 'close', onProcessEnd
 
 class Debugger extends EventEmitter
+
   constructor: (@atom = atom, @processManager)->
     super()
+    @className = 'Flutter-Debugger'
     @breakpoints = []
     @client = null
 
@@ -188,6 +190,7 @@ class Debugger extends EventEmitter
 
   addBreakpoint: (editor, script, line, condition, silent) =>
     new Promise (resolve, reject) =>
+      # script e.g. -> '/usr/local/google/home/gregsimon/github/flutter-toolkit/loop.dart'
       if script is undefined
         script = @client.currentScript;
         line = @client.currentSourceLine + 1
@@ -233,7 +236,12 @@ class Debugger extends EventEmitter
           line: line
           condition: condition
 
+      # call shim to set the breakpoint.
       @client.setBreakpoint req, (err, res) =>
+        console.log '******* setBreakpoint returned from shim with:'
+        console.log err
+        console.log res
+
         return reject(err) if err
 
         if not scriptId?

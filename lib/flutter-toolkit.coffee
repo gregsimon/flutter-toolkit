@@ -40,7 +40,7 @@ module.exports =
       default: 'localhost'
     dartArgs:
       type: 'string'
-      default: '--observe=8181'
+      default: '--observe=8182'
     appArgs:
       type: 'string'
       default: ''

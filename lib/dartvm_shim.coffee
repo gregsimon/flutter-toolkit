@@ -28,6 +28,7 @@ logger = require './logger'
 
 
 class Client extends EventEmitter
+  @className = 'Flutter-Client'
   constructor: ()->
     super()
     @s = null             # websocket
@@ -37,6 +38,7 @@ class Client extends EventEmitter
     @libraries = { }      # details of all known libraries
 
     @breakpoints = []
+    @pending_breakpoints = []   # holds
 
   connect: (port, host)->
     logger.info 'shim', 'connecting to VM...'
@@ -59,8 +61,8 @@ class Client extends EventEmitter
       @emit 'error', error
 
     @s.onmessage = (event) =>
-      logger.info 'shim', 'ws::onmessage'
       json = JSON.parse(event.data)
+      logger.info 'shim', "ws::onmessage id=#{json.id} method=#{json.method}"
 
       switch json.id
         when 'stream_debug'
@@ -70,11 +72,13 @@ class Client extends EventEmitter
           console.log(json)
           logger.info 'shim', event.data
         when 'getvm'
+          console.log(json)
           @vm = json.result
           # collect detailed isolate info so we can set breakpoints/etc.
           @s.send('{"jsonrpc": "2.0","method": "getIsolate","params":{"isolateId":"'+iso.id+'"},"id": "getiso"}') for iso in json.result.isolates
           @emit 'ready'
         when 'getiso'
+          console.log(json)
           isolate = json.result;
           @isolates[isolate.id] = isolate
           console.log 'the ISO object ' + isolate.id
@@ -110,17 +114,23 @@ class Client extends EventEmitter
     @s.close()
 
   handleStreamNotify: (json)->
-    console.log 'handleStreamNotify:'
-    console.log json
+    logger.info 'shim', "handleStreamNotify(#{json.params.event.kind})"
     switch json.params.event.kind
       when 'BreakpointAdded'
         console.log '----> A breakpoint was added'
-        # TODO
+        # This needs to call return the promise we stated with 'setBreakpoint'
+        @breakpoints.push json.params
+        # just pop the next one from the top. This is fragile because the
+        # sequencing might not be best.
+        brk = @pending_breakpoints[0]
+        console.log brk
+        brk.resolve()
+        @pending_breakpoints.shift()
       when 'PauseBreakpoint'
         console.log '----> execution has stopped because a breakpoint was hit'
         # TODO
       else
-        console.log 'UNSUPPORTED stream type'
+        console.log "Unhandled stream type: #{json.params.event.kind}"
 
   getVM: -> return @vm
   getIsolates: -> return @isolates
@@ -142,42 +152,53 @@ class Client extends EventEmitter
     logger.info 'shim', 'breakpoints'
     return ""
 
+  # Returns object:
+  # .breakpoint (id)
+  # .line
   setBreakpoint: (req) ->
-    logger.info 'shim', 'setBreakpoint'
-    src_file = req.target.replace(/\\/g, "/")
+    p = new Promise (resolve, reject) =>
+      logger.info 'shim', 'setBreakpoint'
+      src_file = req.target.replace(/\\/g, "/")
 
-    console.log('setBreakpoint .. from editor: ' + src_file + ':' + req.line)
-    # req.type <-- "script"
-    # req.target <-- <file path>
-    # req.line <-- <number>
-    # req.condition <-- 'undefined'
+      console.log('setBreakpoint .. from editor: ' + src_file + ':' + req.line)
+      # req.type <-- "script"
+      # req.target <-- <file path>
+      # req.line <-- <number>
+      # req.condition <-- 'undefined'
 
-    scriptId = undefined
-    #console.log @isolates
-    console.log @libraries
+      scriptId = undefined
+      #console.log 'isolates:'
+      #console.log @isolates
+      #console.log 'libraries:'
+      #console.log @libraries
 
-    # find the isolate which contains this script.
-    isloate_with_script = iso for id, iso of @isolates when iso.id.search src_file >= 0
-    console.log 'isloate_with_script -> ' + isloate_with_script.id
+      # find the isolate which contains this script.
+      isloate_with_script = iso for id, iso of @isolates when iso.id.search src_file >= 0
+      console.log 'isloate_with_script -> ' + isloate_with_script.id
 
-    # find the library this script is in. We'll search the libraries
-    # we are aware of for the .uri field. From there we'll get the
-    # scriptid.
-    library_with_script = lib for id, lib of @libraries when lib.uri.search src_file >= 0
-    if library_with_script is undefined
-      logger.error 'shim', 'unable to locate script id for ' + src_file
+      # find the library this script is in. We'll search the libraries
+      # we are aware of for the .uri field. From there we'll get the
+      # scriptid.
+      library_with_script = lib for id, lib of @libraries when lib.uri.search src_file >= 0
+      if library_with_script is undefined
+        logger.error 'shim', 'unable to locate script id for ' + src_file
 
-    scriptId = library_with_script.scripts[0].id;
+      scriptId = library_with_script.scripts[0].id;
 
-    # TODO : we aren't identifying the isolate here.
+      # TODO : we aren't identifying the isolate here.
 
-    str = '{"jsonrpc":"2.0","method":"addBreakpoint","params":{\
-      "isolateId":"'+isloate_with_script.id+'",\
-      "scriptId":"'+scriptId+'", \
-      "line":'+req.line.toString()+' \
-      },"id":"addbreakpoint"}'
-    #console.log str
-    @s.send str
+      str = '{"jsonrpc":"2.0","method":"addBreakpoint","params":{\
+        "isolateId":"'+isloate_with_script.id+'",\
+        "scriptId":"'+scriptId+'", \
+        "line":'+req.line.toString()+' \
+        },"id":"addbreakpoint"}'
+      #console.log str
+      @s.send str
+
+    # This promise will return when the we get the event
+    # from the VM that we have successfully added a breakpoint.
+    @pending_breakpoints.push p
+
 
 
   step: (type, count) ->
