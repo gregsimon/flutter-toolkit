@@ -172,6 +172,8 @@ class Debugger extends EventEmitter
     findMatch = R.find (breakpoint) =>
       if breakpoint.scriptId is script or breakpoint.scriptReq is script or (breakpoint.script and breakpoint.script.indexOf(script) isnt -1)
         return breakpoint.line is (line+1);
+    console.log @client
+    console.log @client.breakpoints
     return findMatch(@client.breakpoints)
 
   toggleBreakpoint: (editor, script, line) ->
@@ -189,7 +191,7 @@ class Debugger extends EventEmitter
         @addBreakpoint(editor, script, line)
 
   addBreakpoint: (editor, script, line, condition, silent) =>
-    new Promise (resolve, reject) =>
+    #new Promise (resolve, reject) =>
       # script e.g. -> '/usr/local/google/home/gregsimon/github/flutter-toolkit/loop.dart'
       if script is undefined
         script = @client.currentScript;
@@ -227,6 +229,7 @@ class Debugger extends EventEmitter
           target: scriptId
           line: line - 1
           condition: condition
+          editor: editor
       else
         escapedPath = script.replace(/([/\\.?*()^${}|[\]])/g, '\\$1')
         scriptPathRegex = "^(.*[\\/\\\\])?#{escapedPath}$";
@@ -235,8 +238,13 @@ class Debugger extends EventEmitter
           target: script
           line: line
           condition: condition
+          editor: editor
 
-      # call shim to set the breakpoint.
+      # call shim to set the breakpoint. This returns immediately
+      # and returns with an event.
+      @client.setBreakpoint req
+
+      ###
       @client.setBreakpoint req, (err, res) =>
         console.log '******* setBreakpoint returned from shim with:'
         console.log err
@@ -260,7 +268,22 @@ class Debugger extends EventEmitter
         brk.marker = @markLine(editor, brk)
         @onAddBreakpointEvent.broadcast(brk)
         resolve(brk)
+        ###
 
+  breakpointAdded: (b) =>
+    logger.info 'debugger', '--> breakpointAdded'
+    console.log(b)
+    brk =
+      id: b.id
+      scriptId: b.location.script.id
+      script: b.location.script.uri
+      line: b.line
+      condition: b.condition
+      scriptReq: b.location.script.uri
+    console.log @client
+    @client.breakpoints.push brk
+    brk.marker = @markLine(b.editor, brk)
+    @onAddBreakpointEvent.broadcast(brk)
 
   clearBreakPoint: (script, line) ->
     self = this
@@ -334,6 +357,7 @@ class Debugger extends EventEmitter
   bindEvents: =>
     logger.info 'debugger', 'connected'
     @emit 'connected'
+    @client.on 'breakpointAdded', @breakpointAdded
     @client.on 'close', =>
       logger.info 'debugger', 'connection closed'
 
@@ -367,16 +391,19 @@ class Debugger extends EventEmitter
     @emit 'disconnected'
 
   markLine: (editor, breakPoint) ->
+      logger.info 'debugger', 'markLine'
       marker = editor.markBufferPosition([breakPoint.line-1, 0], invalidate: 'never')
       editor.decorateMarker(marker, type: 'line-number', class: 'flutter-debugger-breakpoint')
       @markers.push marker
       return marker
 
   removeBreakpointMarkers: =>
+      logger.info 'debugger', 'removeBreakpointMarkers'
       return unless @client?
-      breakpoint.marker.destroy() for breakpoint in @client.breakpoints
+      # TODO ???? breakpoint.marker.destroy() for breakpoint in @client.breakpoints
 
   removeDecorations: ->
+      logger.info 'debugger', 'removeDecorations'
       return unless @markers?
       marker.destroy() for marker in @markers
       @markers = []

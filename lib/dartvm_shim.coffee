@@ -28,7 +28,9 @@ logger = require './logger'
 
 
 class Client extends EventEmitter
-  @className = 'Flutter-Client'
+  className: 'Flutter-Shim'
+  breakpoints: []
+
   constructor: ()->
     super()
     @s = null             # websocket
@@ -37,8 +39,7 @@ class Client extends EventEmitter
     @isolates = { }       # details of active isolates
     @libraries = { }      # details of all known libraries
 
-    @breakpoints = []
-    @pending_breakpoints = []   # holds
+    @pending_breakpoints = []
 
   connect: (port, host)->
     logger.info 'shim', 'connecting to VM...'
@@ -117,15 +118,12 @@ class Client extends EventEmitter
     logger.info 'shim', "handleStreamNotify(#{json.params.event.kind})"
     switch json.params.event.kind
       when 'BreakpointAdded'
-        console.log '----> A breakpoint was added'
-        # This needs to call return the promise we stated with 'setBreakpoint'
-        @breakpoints.push json.params
-        # just pop the next one from the top. This is fragile because the
-        # sequencing might not be best.
-        brk = @pending_breakpoints[0]
-        console.log brk
-        brk.resolve()
+        b = json.params.event.breakpoint
+        pending = @pending_breakpoints[0]
         @pending_breakpoints.shift()
+        b.line = pending.line
+        #@breakpoints.push b #
+        @emit 'breakpointAdded', b
       when 'PauseBreakpoint'
         console.log '----> execution has stopped because a breakpoint was hit'
         # TODO
@@ -148,7 +146,7 @@ class Client extends EventEmitter
   listbreakpoints: ->
     logger.info 'shim', 'listbreakpoints'
 
-  breakpoints: ->
+  ___breakpoints: ->
     logger.info 'shim', 'breakpoints'
     return ""
 
@@ -156,49 +154,45 @@ class Client extends EventEmitter
   # .breakpoint (id)
   # .line
   setBreakpoint: (req) ->
-    p = new Promise (resolve, reject) =>
-      logger.info 'shim', 'setBreakpoint'
-      src_file = req.target.replace(/\\/g, "/")
+    logger.info 'shim', 'setBreakpoint'
+    src_file = req.target.replace(/\\/g, "/")
 
-      console.log('setBreakpoint .. from editor: ' + src_file + ':' + req.line)
-      # req.type <-- "script"
-      # req.target <-- <file path>
-      # req.line <-- <number>
-      # req.condition <-- 'undefined'
+    console.log('setBreakpoint .. from editor: ' + src_file + ':' + req.line)
+    # req.type <-- "script"
+    # req.target <-- <file path>
+    # req.line <-- <number>
+    # req.condition <-- 'undefined'
 
-      scriptId = undefined
-      #console.log 'isolates:'
-      #console.log @isolates
-      #console.log 'libraries:'
-      #console.log @libraries
+    scriptId = undefined
+    #console.log 'isolates:'
+    #console.log @isolates
+    #console.log 'libraries:'
+    #console.log @libraries
 
-      # find the isolate which contains this script.
-      isloate_with_script = iso for id, iso of @isolates when iso.id.search src_file >= 0
-      console.log 'isloate_with_script -> ' + isloate_with_script.id
+    # find the isolate which contains this script.
+    isloate_with_script = iso for id, iso of @isolates when iso.id.search src_file >= 0
+    console.log 'isloate_with_script -> ' + isloate_with_script.id
 
-      # find the library this script is in. We'll search the libraries
-      # we are aware of for the .uri field. From there we'll get the
-      # scriptid.
-      library_with_script = lib for id, lib of @libraries when lib.uri.search src_file >= 0
-      if library_with_script is undefined
-        logger.error 'shim', 'unable to locate script id for ' + src_file
+    # find the library this script is in. We'll search the libraries
+    # we are aware of for the .uri field. From there we'll get the
+    # scriptid.
+    library_with_script = lib for id, lib of @libraries when lib.uri.search src_file >= 0
+    if library_with_script is undefined
+      logger.error 'shim', 'unable to locate script id for ' + src_file
 
-      scriptId = library_with_script.scripts[0].id;
+    scriptId = library_with_script.scripts[0].id;
 
-      # TODO : we aren't identifying the isolate here.
+    # TODO : we aren't identifying the isolate here.
 
-      str = '{"jsonrpc":"2.0","method":"addBreakpoint","params":{\
-        "isolateId":"'+isloate_with_script.id+'",\
-        "scriptId":"'+scriptId+'", \
-        "line":'+req.line.toString()+' \
-        },"id":"addbreakpoint"}'
-      #console.log str
-      @s.send str
+    @pending_breakpoints.push {editor:req.editor, line:req.line, scriptId:scriptId}
 
-    # This promise will return when the we get the event
-    # from the VM that we have successfully added a breakpoint.
-    @pending_breakpoints.push p
-
+    str = '{"jsonrpc":"2.0","method":"addBreakpoint","params":{\
+      "isolateId":"'+isloate_with_script.id+'",\
+      "scriptId":"'+scriptId+'", \
+      "line":'+req.line.toString()+' \
+      },"id":"addbreakpoint"}'
+    #console.log str
+    @s.send str
 
 
   step: (type, count) ->
