@@ -167,16 +167,25 @@ class Debugger extends EventEmitter
         resolve(res[0])
 
   tryGetBreakpoint: (script, line) =>
+    logger.info 'debugger', 'tryGetBreakpoint'
     # TODO : This can be called before the client is instantiated.
+    # This is also called by toggleBreakpoint
 
     findMatch = R.find (breakpoint) =>
-      if breakpoint.scriptId is script or breakpoint.scriptReq is script or (breakpoint.script and breakpoint.script.indexOf(script) isnt -1)
+      console.log 'finding for '+script+' '+line
+      console.log breakpoint
+      if breakpoint.scriptId is script or breakpoint.scriptReq is script or \
+              (breakpoint.script and breakpoint.script.indexOf(script) isnt -1)
         return breakpoint.line is (line+1);
-    console.log @client
-    console.log @client.breakpoints
-    return findMatch(@client.breakpoints)
+    #console.log 'tryGetBreakpoint'
+    #console.log @client.breakpoints
+    bb =  findMatch(@client.breakpoints)
+    console.log('found?')
+    console.log bb
+    return bb
 
   toggleBreakpoint: (editor, script, line) ->
+    logger.info 'debugger', 'toggleBreakpoint'
     # We need to start the process in a puased state if
     # it hasn't been started yet.
     if @client is null
@@ -191,6 +200,7 @@ class Debugger extends EventEmitter
         @addBreakpoint(editor, script, line)
 
   addBreakpoint: (editor, script, line, condition, silent) =>
+      logger.info 'debugger', 'addBreakpoint'
     #new Promise (resolve, reject) =>
       # script e.g. -> '/usr/local/google/home/gregsimon/github/flutter-toolkit/loop.dart'
       if script is undefined
@@ -271,7 +281,8 @@ class Debugger extends EventEmitter
         ###
 
   breakpointAdded: (b) =>
-    logger.info 'debugger', '--> breakpointAdded'
+    logger.info 'debugger', 'breakpointAdded'
+    console.log('breakpointAdded')
     console.log(b)
     brk =
       id: b.id
@@ -280,7 +291,6 @@ class Debugger extends EventEmitter
       line: b.line
       condition: b.condition
       scriptReq: b.location.script.uri
-    console.log @client
     @client.breakpoints.push brk
     brk.marker = @markLine(b.editor, brk)
     @onAddBreakpointEvent.broadcast(brk)

@@ -29,6 +29,13 @@ logger = require './logger'
 
 class Client extends EventEmitter
   className: 'Flutter-Shim'
+
+  # {
+  #   scriptId
+  #   scriptReq
+  #   script
+  #   script.line
+  # }
   breakpoints: []
 
   constructor: ()->
@@ -122,7 +129,10 @@ class Client extends EventEmitter
         pending = @pending_breakpoints[0]
         @pending_breakpoints.shift()
         b.line = pending.line
-        #@breakpoints.push b #
+        b.editor = pending.editor
+        # The breakpoint is added by the Debugger in 'breakpointAdded'
+        #@breakpoints.push { line:b.line, scriptId:undefined, \
+        #                    script:undefined, scriptReq:undefined }
         @emit 'breakpointAdded', b
       when 'PauseBreakpoint'
         console.log '----> execution has stopped because a breakpoint was hit'
@@ -146,9 +156,10 @@ class Client extends EventEmitter
   listbreakpoints: ->
     logger.info 'shim', 'listbreakpoints'
 
-  ___breakpoints: ->
-    logger.info 'shim', 'breakpoints'
-    return ""
+  clearBreakpoint: (req) ->
+    logger.info 'shim', 'clearBreakpoint'
+    console.log('clear breakpoint id=' + req.breakpoint)
+    console.log(@breakpoints)
 
   # Returns object:
   # .breakpoint (id)
